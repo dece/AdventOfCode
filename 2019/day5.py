@@ -23,19 +23,19 @@ def run_intcode(codes):
     last_output = 0
     ip = 0
     while True:
-        code, modes = parse_code(codes[ip])
-        mode1, mode2, mode3 = modes
+        code, modes = try_parse_code(codes[ip])
+        mode1, mode2, _ = modes
         if code == Opcode.ADD:
             print("ADD:", codes[ip : ip + 4])
-            operand1 = resolve_param(codes, ip + 1, mode1)
-            operand2 = resolve_param(codes, ip + 2, mode2)
+            operand1 = read_param(codes, ip + 1, mode1)
+            operand2 = read_param(codes, ip + 2, mode2)
             output_pos = codes[ip + 3]
             codes[output_pos] = operand1 + operand2
             ip += 4
         elif code == Opcode.MUL:
             print("MUL:", codes[ip : ip + 4])
-            operand1 = resolve_param(codes, ip + 1, mode1)
-            operand2 = resolve_param(codes, ip + 2, mode2)
+            operand1 = read_param(codes, ip + 1, mode1)
+            operand2 = read_param(codes, ip + 2, mode2)
             output_pos = codes[ip + 3]
             codes[output_pos] = operand1 * operand2
             ip += 4
@@ -46,9 +46,9 @@ def run_intcode(codes):
             ip += 2
         elif code == Opcode.OUT:
             print("OUT:", codes[ip : ip + 2])
-            operand_pos = codes[ip + 1]
-            last_output = codes[operand_pos]
-            print("\t->", last_output)
+            operand = read_param(codes, ip + 1, mode1)
+            last_output = operand
+            print("  ->", last_output)
             ip += 2
         elif code == Opcode.HALT:
             print("HALT.")
@@ -57,10 +57,16 @@ def run_intcode(codes):
             sys.exit("Wrong opcode: {}".format(code))
     return last_output
 
+def try_parse_code(code):
+    try:
+        return parse_code(code)
+    except ValueError:
+        sys.exit("Not a valid code: {}".format(code))
+
 def parse_code(code):
     opcode = get_digit(code, 2)*10 + get_digit(code, 1)
     if code < 100:
-        return opcode, (ParamMode.IMM,) * 3
+        return opcode, (ParamMode.POS,) * 3
     mode1 = ParamMode(get_digit(code, 3))
     mode2 = ParamMode(get_digit(code, 4))
     mode3 = ParamMode(get_digit(code, 5))
@@ -75,7 +81,7 @@ def get_digit(value, digit):
     except IndexError:
         return 0
 
-def resolve_param(codes, pos, mode):
+def read_param(codes, pos, mode):
     if mode == ParamMode.POS:
         return codes[codes[pos]]
     elif mode == ParamMode.IMM:
