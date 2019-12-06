@@ -3,23 +3,32 @@ import sys
 
 def main():
     with open("day5.txt", "rt") as input_file:
-        codes = [int(i) for i in input_file.read().strip().split(",")]
-    last_output = run_intcode(codes)
+        codes = parse_input(input_file.read())
+    
+    # input_value = 1
+    input_value = 5
+    last_output = run_intcode(codes, input_value)
     print("Last output:", last_output)
+
+def parse_input(text):
+    return [int(i) for i in text.rstrip().split(",")]
 
 class Opcode(IntEnum):
     ADD = 1
     MUL = 2
     IN = 3
     OUT = 4
+    JNZ = 5
+    JEZ = 6
+    LT = 7
+    EQ = 8
     HALT = 99
 
 class ParamMode(IntEnum):
     POS = 0
     IMM = 1
 
-def run_intcode(codes):
-    fixed_input = 1
+def run_intcode(codes, input_value):
     last_output = 0
     ip = 0
     while True:
@@ -42,7 +51,7 @@ def run_intcode(codes):
         elif code == Opcode.IN:
             print("IN:", codes[ip : ip + 2])
             operand_pos = codes[ip + 1]
-            codes[operand_pos] = fixed_input
+            codes[operand_pos] = input_value
             ip += 2
         elif code == Opcode.OUT:
             print("OUT:", codes[ip : ip + 2])
@@ -50,6 +59,32 @@ def run_intcode(codes):
             last_output = operand
             print("  ->", last_output)
             ip += 2
+        elif code == Opcode.JNZ:
+            print("JNZ:", codes[ip : ip + 3])
+            operand = read_param(codes, ip + 1, mode1)
+            if operand != 0:
+                ip = read_param(codes, ip + 2, mode2)
+            else:
+                ip += 3
+        elif code == Opcode.JEZ:
+            print("JEZ:", codes[ip : ip + 3])
+            operand = read_param(codes, ip + 1, mode1)
+            if operand == 0:
+                ip = read_param(codes, ip + 2, mode2)
+            else:
+                ip += 3
+        elif code == Opcode.LT:
+            print("LT:", codes[ip : ip + 4])
+            operand1 = read_param(codes, ip + 1, mode1)
+            operand2 = read_param(codes, ip + 2, mode2)            
+            codes[ip + 3] = int(operand1 < operand2)
+            ip += 4
+        elif code == Opcode.EQ:
+            print("EQ:", codes[ip : ip + 4])
+            operand1 = read_param(codes, ip + 1, mode1)
+            operand2 = read_param(codes, ip + 2, mode2)
+            codes[ip + 3] = int(operand1 == operand2)
+            ip += 4
         elif code == Opcode.HALT:
             print("HALT.")
             break
@@ -65,8 +100,6 @@ def try_parse_code(code):
 
 def parse_code(code):
     opcode = get_digit(code, 2)*10 + get_digit(code, 1)
-    if code < 100:
-        return opcode, (ParamMode.POS,) * 3
     mode1 = ParamMode(get_digit(code, 3))
     mode2 = ParamMode(get_digit(code, 4))
     mode3 = ParamMode(get_digit(code, 5))
