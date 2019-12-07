@@ -77,13 +77,15 @@ def run_intcode(codes, input_value):
             print("LT:", codes[ip : ip + 4])
             operand1 = read_param(codes, ip + 1, mode1)
             operand2 = read_param(codes, ip + 2, mode2)            
-            codes[ip + 3] = int(operand1 < operand2)
+            output_pos = codes[ip + 3]
+            codes[output_pos] = int(operand1 < operand2)
             ip += 4
         elif code == Opcode.EQ:
             print("EQ:", codes[ip : ip + 4])
             operand1 = read_param(codes, ip + 1, mode1)
             operand2 = read_param(codes, ip + 2, mode2)
-            codes[ip + 3] = int(operand1 == operand2)
+            output_pos = codes[ip + 3]
+            codes[output_pos] = int(operand1 == operand2)
             ip += 4
         elif code == Opcode.HALT:
             print("HALT.")
