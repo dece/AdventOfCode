@@ -1,3 +1,5 @@
+from PIL import Image
+
 WIDTH = 25
 HEIGHT = 6
 NUM_PIXELS = WIDTH * HEIGHT
@@ -15,6 +17,16 @@ def main():
     num_ones = sum(d == "1" for d in least_zeros_layer)
     num_twos = sum(d == "2" for d in least_zeros_layer)
     print("Result:", num_ones * num_twos)
+
+    # Part 2
+    img = Image.new("1", (WIDTH, HEIGHT))
+    for layer in reversed(layers):
+        for index, pixel in enumerate(layer):
+            if pixel == "2":
+                continue
+            coords = (index % WIDTH, index // WIDTH)
+            img.putpixel(coords, int(pixel))
+    img.save("/tmp/day8.png")
 
 
 if __name__ == "__main__":
