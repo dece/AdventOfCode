@@ -1,4 +1,4 @@
-""" Intcode refactored from day 7. """
+""" Intcode interpreter. Day 9. """
 
 from enum import IntEnum
 import sys
@@ -13,19 +13,22 @@ class Op(IntEnum):
     JEZ = 6
     LT = 7
     EQ = 8
+    SRB = 9
     HALT = 99
 
 
 class PMode(IntEnum):
     POS = 0
     IMM = 1
+    REL = 2
 
 
 class Intcode(object):
 
     def __init__(self, program, print_output=False):
-        self.memory = program.copy()
+        self._memory = program.copy()
         self.ip = 0
+        self.rel_base = 0
         self.inputs = []
         self.ctx_op = None
         self.ctx_modes = None
@@ -37,16 +40,19 @@ class Intcode(object):
     def parse_input(text):
         return [int(i) for i in text.rstrip().split(",")]
     
-    def run(self, inputs):
-        self.inputs = inputs
+    def run(self, inputs=None):
+        self.inputs = inputs or []
         handlers = self.get_handlers()
         while not self.halt:
             self.read_code()
             handler = handlers.get(self.ctx_op)
             if not handler:
                 sys.exit("Wrong opcode: {}".format(self.ctx_op))
-            handler()
-        return self.outputs[-1]
+            try:
+                handler()
+            except Exception as exc:
+                sys.exit("Exception: {}".format(exc))
+        return self.outputs[-1] if self.outputs else 0
 
     def get_handlers(self):
         return {
@@ -58,11 +64,29 @@ class Intcode(object):
             Op.JEZ: self.op_jez,
             Op.LT: self.op_lt,
             Op.EQ: self.op_eq,
+            Op.SRB: self.op_srb,
             Op.HALT: self.op_halt,
         }
 
+    def mem_get(self, pos):
+        self._check_memory_limits(pos)
+        return self._memory[pos]
+    
+    def mem_set(self, pos, value):
+        self._check_memory_limits(pos)
+        self._memory[pos] = value
+
+    def _check_memory_limits(self, index):
+        if index >= len(self._memory):
+            self._extend_memory(index + 1)
+
+    def _extend_memory(self, new_size):
+        if len(self._memory) >= new_size:
+            return
+        self._memory += [0] * (new_size - len(self._memory))
+
     def read_code(self):
-        code = self.memory[self.ip]
+        code = self.mem_get(self.ip)
         self.ctx_op = code % 100
         code //= 100
         self.ctx_modes = []
@@ -73,24 +97,29 @@ class Intcode(object):
     def param(self, index):
         mode = self.ctx_modes[index - 1]
         if mode == PMode.POS:
-            return self.memory[self.memory[self.ip + index]]
+            address = self.mem_get(self.ip + index)
+            return self.mem_get(address)
         elif mode == PMode.IMM:
-            return self.memory[self.ip + index]
+            return self.mem_get(self.ip + index)
+        elif mode == PMode.REL:
+            relative_jump = self.mem_get(self.ip + index)
+            address = self.rel_base + relative_jump
+            return self.mem_get(address)
     
-    def write_at(self, pos_offset, value):
-        output_pos = self.memory[self.ip + pos_offset]
-        self.memory[output_pos] = value
+    def write_pos_ofs(self, pos_offset, value):
+        output_pos = self.mem_get(self.ip + pos_offset)
+        self.mem_set(output_pos, value)
     
     def op_add(self):
-        self.write_at(3, self.param(1) + self.param(2))
+        self.write_pos_ofs(3, self.param(1) + self.param(2))
         self.ip += 4
 
     def op_mul(self):
-        self.write_at(3, self.param(1) * self.param(2))
+        self.write_pos_ofs(3, self.param(1) * self.param(2))
         self.ip += 4
 
     def op_in(self):
-        self.write_at(1, self.inputs.pop(0))
+        self.write_pos_ofs(1, self.inputs.pop(0))
         self.ip += 2
 
     def op_out(self):
@@ -112,12 +141,16 @@ class Intcode(object):
             self.ip += 3
 
     def op_lt(self):
-        self.write_at(3, int(self.param(1) < self.param(2)))
+        self.write_pos_ofs(3, int(self.param(1) < self.param(2)))
         self.ip += 4
 
     def op_eq(self):
-        self.write_at(3, int(self.param(1) == self.param(2)))
+        self.write_pos_ofs(3, int(self.param(1) == self.param(2)))
         self.ip += 4
+
+    def op_srb(self):
+        self.rel_base += self.param(1)
+        self.ip += 2
 
     def op_halt(self):
         self.halt = True
