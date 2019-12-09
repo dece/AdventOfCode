@@ -9,8 +9,14 @@ EX3 = "104,1125899906842624,99"
 def main():
     with open("day9.txt", "rt") as input_file:
         text = input_file.readlines()[0].rstrip()
+    
     codes = Intcode.parse_input(text)
+
+    # Part 1
     Intcode(codes, print_output=True).run([1])
+
+    # Part 2
+    Intcode(codes, print_output=True).run([2])
 
 
 if __name__ == "__main__":
