@@ -1,4 +1,4 @@
-""" Intcode interpreter. Day 9. """
+""" Intcode interpreter. Day 11. """
 
 from enum import IntEnum
 import sys
@@ -25,16 +25,14 @@ class PMode(IntEnum):
 
 class Intcode(object):
 
-    def __init__(self, program, print_output=False, debug=False):
+    def __init__(self, program, debug=False):
         self._memory = program.copy()
         self.ip = 0
         self.rel_base = 0
-        self.inputs = []
         self.ctx_op = None
         self.ctx_modes = None
         self.halt = False
-        self.outputs = []
-        self.print_output = print_output
+        self.inputs = None
         self.debug = debug
 
     @staticmethod
@@ -51,7 +49,6 @@ class Intcode(object):
         while not self.halt:
             self.read_code()
             handlers.get(self.ctx_op)()
-        return self.outputs[-1] if self.outputs else 0
 
     def get_handlers(self):
         return {
@@ -115,13 +112,11 @@ class Intcode(object):
         self.ip += 4
 
     def op_in(self):
-        self.mem_set(self.param(1, pointer=True), self.inputs.pop(0))
+        self.mem_set(self.param(1, pointer=True), self.input_data())
         self.ip += 2
 
     def op_out(self):
-        self.outputs.append(self.param(1))
-        if self.print_output:
-            print(">", self.outputs[-1])
+        self.output_data(self.param(1))
         self.ip += 2
 
     def op_jnz(self):
@@ -150,3 +145,9 @@ class Intcode(object):
 
     def op_halt(self):
         self.halt = True
+
+    def input_data(self):
+        return self.inputs.pop(0)
+    
+    def output_data(self, data):
+        print(">", data)
