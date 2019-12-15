@@ -13,10 +13,11 @@ def is_valid(value):
 
 def has_adjacents(value):
     digits = [get_digit(value, index) for index in range(6)]
+    adjacent_digits = []
     for i in range(6 - 1):
         if digits[i] == digits[i + 1]:
-            return True
-    return False
+            adjacent_digits.append(digits[i])
+    return any(sum(a == d for d in adjacent_digits) == 1 for a in set(adjacent_digits))
 
 def is_increasing(value):
     digits = [get_digit(value, index) for index in range(6)]
@@ -27,6 +28,7 @@ def is_increasing(value):
 
 def get_digit(value, index):
     return int(str(value)[index])
+
 
 if __name__ == "__main__":
     main()
