@@ -1,31 +1,35 @@
-import sys
+import itertools
 
-CODES = None
-with open("day2.txt", "rt") as input_file:
-    CODES = [int(i) for i in input_file.read().strip().split(",")]
+from intcode import Intcode
 
-CODES[1] = 12
-CODES[2] = 2
 
-ip = 0
-while True:
-    code = CODES[ip]
-    if code == 1:
-        operand1_pos = CODES[ip + 1]
-        operand2_pos = CODES[ip + 2]
-        output_pos = CODES[ip + 3]
-        CODES[output_pos] = CODES[operand1_pos] + CODES[operand2_pos]
-        ip += 4
-    elif code == 2:
-        operand1_pos = CODES[ip + 1]
-        operand2_pos = CODES[ip + 2]
-        output_pos = CODES[ip + 3]
-        CODES[output_pos] = CODES[operand1_pos] * CODES[operand2_pos]
-        ip += 4
-    elif code == 99:
-        break
-    else:
-        print("Wrong opcode:", code)
-        sys.exit()
+def main():
+    with open("day2.txt", "rt") as input_file:
+        text = input_file.readlines()[0].rstrip()
+    codes = Intcode.parse_input(text)
 
-print("Value at pos0:", CODES[0])
+    # Part 1
+    codes_p1 = codes.copy()
+    codes_p1[1] = 12
+    codes_p1[2] = 2
+    ic = Intcode(codes_p1)
+    ic.run()
+    print(f"Value at pos 0: {ic._memory[0]}.")
+
+    # Part 2
+    noun, verb = 0, 0
+    for x, y in itertools.permutations(range(1, 100), 2):
+        codes_p2 = codes.copy()
+        codes_p2[1] = x
+        codes_p2[2] = y
+        ic = Intcode(codes_p2)
+        ic.run()
+        if ic._memory[0] == 19690720:
+            noun, verb = x, y
+            break
+    print(f"Found noun={noun} and verb={verb}.")
+    print(f"Answer: {100 * noun + verb}")
+
+
+if __name__ == "__main__":
+    main()
