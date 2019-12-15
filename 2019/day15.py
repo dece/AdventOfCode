@@ -1,4 +1,5 @@
 from collections import defaultdict
+import time 
 
 from intcode import Intcode
 
@@ -8,6 +9,7 @@ def main():
         text = input_file.readlines()[0].rstrip()
     codes = Intcode.parse_input(text)
 
+    # Part 1
     droid = Droid(codes)
     droid.run()
     print(f"Oxygen system at {droid.oxygen_system_pos}.")
@@ -15,12 +17,37 @@ def main():
     num_steps = len_backtrack(parents, droid.oxygen_system_pos, (0, 0))
     print(f"{num_steps} steps with BFS.")
 
+    # Part 2
+    os_pos = droid.oxygen_system_pos
+    droid.tiles[os_pos[0]][os_pos[1]] = Droid.TILE_O2
+    minutes = 0
+    propagations = [os_pos]
+    while propagations:
+        next_propagations = []
+        for prop in propagations:
+            adjacents = list(filter(
+                lambda p: droid.tiles[p[0]][p[1]] == Droid.TILE_CLR,
+                [Droid.forward(prop, d[1]) for d in Droid.NEXT_DIR.keys()]
+            ))
+            for adj in adjacents:
+                droid.tiles[adj[0]][adj[1]] = Droid.TILE_O2
+            next_propagations += adjacents
+        if not next_propagations:
+            break
+        propagations = next_propagations
+
+        droid.draw()
+        minutes += 1
+        print(f"Minute {minutes}: propagated to {propagations}")
+        time.sleep(0.2)
+        
 
 class Droid(Intcode):
 
     TILE_UNK = 0
     TILE_WALL = 1
     TILE_CLR = 2
+    TILE_O2 = 4
 
     RES_COLL = 0
     RES_OK = 1
@@ -57,15 +84,14 @@ class Droid(Intcode):
         if data == Droid.RES_COLL:
             self.tiles[fx][fy] = Droid.TILE_WALL
             self.dir = Droid.NEXT_DIR[self.dir]
-        elif data == Droid.RES_OK:
-            self.halt = (fx, fy) == (0, 0)
+        else:
             self.x, self.y = fx, fy
-            self.tiles[fx][fy] = Droid.TILE_CLR
             self.dir = Droid.PREV_DIR[self.dir]
-        elif data == Droid.RES_END:
-            self.x, self.y = fx, fy
-            self.oxygen_system_pos = self.x, self.y
-        if self.halt or self.steps % 100 == 0:
+            self.tiles[self.x][self.y] = Droid.TILE_CLR
+            if data == Droid.RES_END:
+                self.oxygen_system_pos = self.x, self.y
+            self.halt = (fx, fy) == (0, 0)
+        if self.halt:
             self.draw()
     
     def get_forward_pos(self):
@@ -79,8 +105,8 @@ class Droid(Intcode):
         for x in range(-24, 24):
             for y in range(-24, 24):
                 if (x, y) == self.oxygen_system_pos:
-                    print("X", end="")
-                if (x, y) == (0, 0):
+                    print("@", end="")
+                elif (x, y) == (0, 0):
                     print("s", end="")
                 elif (x, y) == (self.x, self.y):
                     print("D", end="")
@@ -89,6 +115,7 @@ class Droid(Intcode):
                         Droid.TILE_UNK: " ",
                         Droid.TILE_WALL: "█",
                         Droid.TILE_CLR: "░",
+                        Droid.TILE_O2: "▒",
                     }[self.tiles[x][y]], end="")
             print()
 
@@ -102,11 +129,11 @@ def bfs(tiles, start, end):
         pos = q.pop(0)
         if pos == end:
             return parents
-        adjacent = filter(
+        adjacents = filter(
             lambda p: tiles[p[0]][p[1]] != Droid.TILE_WALL,
             [Droid.forward(pos, d[1]) for d in Droid.NEXT_DIR.keys()]
         )
-        for adj in adjacent:
+        for adj in adjacents:
             if discovered[adj[0]][adj[1]]:
                 continue
             discovered[adj[0]][adj[1]] = True
