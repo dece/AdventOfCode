@@ -3,16 +3,6 @@ import math
 import re
 
 
-EX1 = [
-    "10 ORE => 10 A",
-    "1 ORE => 1 B",
-    "7 A, 1 B => 1 C",
-    "7 A, 1 C => 1 D",
-    "7 A, 1 D => 1 E",
-    "7 A, 1 E => 1 FUEL",
-]
-
-
 def main():
     with open("day14.txt", "rt") as input_file:
         lines = [line.rstrip() for line in input_file.readlines()]
@@ -28,7 +18,6 @@ def main():
     # Part 1
     ore_per_full = get_required_ore(reactions, 1)
     print("Required ore for 1 FUEL:", ore_per_full)
-    return
 
     # Part 2
     # Input gives 397771 OPF.
@@ -38,28 +27,33 @@ def main():
     # 10^12 / 82892753 / 13312 ~= 0.91
     # 10^12 / 5586022 / 180697 ~= 0.99
     # 10^12 / 460664 / 2210736 ~= 0.98
-    # Let's say our reaction will have this value at about 0.985.
+    # Let's say our reaction will have an efficiency of ~ 0.985.
     # 10^12 / x / 397771 = 0.985  ->  x = 2552294
     # Now on to our search.
 
     fuel_q = 2552294
-    cursor = 10000
+    cursor = 2**16
     last_result = 0
     min_target = 10**12 - ore_per_full
     max_target = 10**12
     was_below = False
-    was_above = False
-    while last_result not in range(min_target, max_target):
+    while True:
         last_result = get_required_ore(reactions, fuel_q)
-        print("{} FUEL requires {} ORE.".format(fuel_q, last_result))
+        print(f"{fuel_q} FUEL requires {last_result} ORE.")
+        if cursor == 1:
+            break
         if last_result < min_target:
-            if was_above:
-                cursor /= 2
-            fuel += cursor
+            if not was_below:
+                cursor //= 2
+            fuel_q += cursor
+            was_below = True
         elif last_result > max_target:
             if was_below:
-                cursor /= 2
-            fuel -= cursor
+                cursor //= 2
+            fuel_q -= cursor
+            was_below = False
+        else:
+            break
     
 def get_required_ore(reactions, quantity):
     stored_map = collections.defaultdict(int)
@@ -67,26 +61,19 @@ def get_required_ore(reactions, quantity):
     ore_per_full = 0
     while needs:
         needed, needed_q = needs.pop(0)
-        print(f"Need {needed_q} {needed}.")
         if needed == "ORE":
-            print(f"- {needed_q} ORE required.")
             ore_per_full += needed_q
             continue
         react_mult, subcomps = reactions[needed]
         if stored_map[needed]:
-            print(f"- Already got {stored_map[needed]} in storage.")
             needed_q -= stored_map[needed]
             stored_map[needed] = 0
         num_reacts = math.ceil(needed_q / react_mult)
-        print(f"- Requires {num_reacts} reaction(s) ({react_mult} {needed} per R)")
         if num_reacts:
             new_needs = [(name_sc, num_sc * num_reacts) for num_sc, name_sc in subcomps]
-            print(f"- New needs: {new_needs}")
             needs += new_needs
         produced = react_mult * num_reacts
-        print(f"- Produced {produced} {needed}.")
         if produced - needed_q > 0:
-            print(f"- Stored {produced - needed_q} {needed} leftovers.")
             stored_map[needed] += produced - needed_q
     return ore_per_full
 
