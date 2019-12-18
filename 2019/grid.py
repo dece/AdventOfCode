@@ -37,6 +37,7 @@ class Grid:
             print()
 
     def print_near(self, p, view_size=2):
+        """Print near values in an area of view_size. Works iff keys support addition."""
         for dy in range(-view_size, view_size + 1):
             print("".join([
                 self.g[p[1] + dy][p[0] + dx]
