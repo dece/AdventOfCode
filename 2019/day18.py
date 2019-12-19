@@ -2,63 +2,107 @@ import string
 import sys
 
 from grid import Grid
-from vector import v2a
 
 
-EX1 = [
-    "#########",
-    "#b.A.@.a#",
-    "#########",
+EX3 = [
+    "#######",
+    "#a.#Cd#",
+    "##@#@##",
+    "#######",
+    "##@#@##",
+    "#cB#Ab#",
+    "#######",
 ]
-EX2 = [
-    "########################",
-    "#f.D.E.e.C.b.A.@.a.B.c.#",
-    "######################.#",
-    "#d.....................#",
-    "########################",
+EX4 = [
+    "###############",
+    "#d.ABC.#.....a#",
+    "######@#@######",
+    "###############",
+    "######@#@######",
+    "#b.....#.....c#",
+    "###############",
 ]
 
 
 def main():
     with open("day18.txt", "rt") as input_file:
         lines = input_file.readlines()
-    
+    print(f"Part 1 answer: {find_all_keys_with_min_steps(lines)} steps.")
+
+    with open("day18-p2.txt", "rt") as input_file:  # yeah
+        lines = input_file.readlines()
+    print(f"Part 2 answer: {find_all_keys_with_min_steps(lines)} steps.")
+
+def find_all_keys_with_min_steps(lines):
+    """Find all keys with 1 or 4 starting points."""
     lab = Lab(lines=lines)
     lab.dumb_print()
     lab.find_positions()
-    states = [(lab.start, frozenset(), 0)]
+    num_robots = len(lab.starts)
+    states = [(
+        lab.starts[0] if num_robots == 1 else encode_posis_packed(lab.starts),
+        frozenset(),
+        0
+    )]
     state_cache = Grid(value_factory=dict)
     num_keys = len(lab.key_pos)
     min_steps = 2**32
     num_processed = 0
     while states:
         num_processed += 1
-        pos, obtained, total_steps = states.pop(0)
+        one_or_more_pos, obtained, total_steps = states.pop(0)
         if len(obtained) == num_keys:
-            print(f"All keys obtained in {total_steps}.")
+            print(f"[Found total of {total_steps}]", end="")
             min_steps = min(min_steps, total_steps)
             continue
 
-        for key_name, bt in lab.get_missing_backtracks(pos, keys=obtained).items():
-            steps, required, found = bt
-            if len(required - obtained) > 0:
-                continue
-            
-            next_pos = lab.key_pos[key_name]
-            next_obtained = obtained | found | {key_name}
-            next_steps = total_steps + steps
+        robot_positions = [one_or_more_pos] if num_robots == 1 else decode_posis(one_or_more_pos)
+        for pos_index, pos in enumerate(robot_positions):
+            for key_name, bt in lab.get_missing_backtracks(pos, keys=obtained).items():
+                steps, required, found = bt
+                if len(required - obtained) > 0:
+                    continue
+                
+                next_pos = lab.key_pos[key_name]
+                next_obtained = obtained | found | {key_name}
+                next_steps = total_steps + steps
 
-            old_bests = state_cache.getv(next_pos[0], next_pos[1])
-            if next_obtained not in old_bests or old_bests[next_obtained] > next_steps:
-                print("o", end="")
-                states.append((next_pos, next_obtained, next_steps))
-                old_bests[next_obtained] = next_steps
-            print(".", end="")
+                old_bests = state_cache.getv(next_pos[0], next_pos[1])
+                if next_obtained not in old_bests or old_bests[next_obtained] > next_steps:
+                    print("o", end="")
+                    if num_robots > 1:
+                        mpos = robot_positions.copy()
+                        mpos[pos_index] = next_pos
+                        next_pos = encode_posis_packed(tuple(mpos))
+                    states.append((next_pos, next_obtained, next_steps))
+                    old_bests[next_obtained] = next_steps
+                print(".", end="")
 
         if num_processed % 100 == 0:
             print(f"[{num_processed}/{len(states)}]", end="")
         sys.stdout.flush()
-    print(f"Minimal number of steps to get all keys: {min_steps}.")
+    
+    print()
+    return min_steps
+
+def encode_posis_packed(pt):
+    p1, p2, p3, p4 = pt
+    return encode_posis(p1, p2, p3, p4)
+
+def encode_posis(p1, p2, p3, p4):
+    return (
+        (p1[0] << 24) + (p2[0] << 16) + (p3[0] << 8) + (p4[0]),
+        (p1[1] << 24) + (p2[1] << 16) + (p3[1] << 8) + (p4[1]),
+    )
+
+def decode_posis(p):
+    return [
+        ((p[0] & 0xFF000000) >> 24, (p[1] & 0xFF000000) >> 24),
+        ((p[0] & 0x00FF0000) >> 16, (p[1] & 0x00FF0000) >> 16),
+        ((p[0] & 0x0000FF00) >>  8, (p[1] & 0x0000FF00) >> 8),
+        ((p[0] & 0x000000FF)      , (p[1] & 0x000000FF)),
+    ]
+
 
 class Lab(Grid):
 
@@ -68,19 +112,20 @@ class Lab(Grid):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, value_factory=lambda: " ")
-        self.start = None
+        self.starts = []
         self.key_pos = {}
         self.door_pos = {}
 
     def find_positions(self):
         for x, y, v in self.values_gen():
             if v == Lab.TILE_START:
-                self.start = (x, y)
+                self.starts.append((x, y))
             if v in string.ascii_lowercase:
                 self.key_pos[v] = (x, y)
             if v in string.ascii_uppercase:
                 self.door_pos[v] = (x, y)
-        self.setv(self.start[0], self.start[1], Lab.TILE_PATH)
+        for p in self.starts:
+            self.setv(p[0], p[1], Lab.TILE_PATH)
     
     def get_missing_backtracks(self, start, keys=set()):
         backtracks = {}
