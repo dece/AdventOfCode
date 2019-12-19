@@ -25,6 +25,7 @@ class PMode(IntEnum):
 class Intcode(object):
 
     def __init__(self, program, debug=False):
+        self._program = program.copy()
         self._memory = program.copy()
         self.ip = 0
         self.rel_base = 0
@@ -33,9 +34,20 @@ class Intcode(object):
         self.halt = False
         self.debug = debug
         self._inputs_list = None
+    
+    def reset(self):
+        self._memory = self._program.copy()
+        self.ip = 0
+        self.rel_base = 0
+        self.halt = False
 
     @staticmethod
-    def parse_input(text):
+    def parse_file(filename):
+        with open(filename, "rt") as input_file:
+            return Intcode.parse_text(input_file.read().rstrip())
+
+    @staticmethod
+    def parse_text(text):
         return [int(i) for i in text.rstrip().split(",")]
 
     def log(self, message, *args):
