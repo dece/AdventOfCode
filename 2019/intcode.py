@@ -1,7 +1,6 @@
-""" Intcode interpreter. Day 11. """
+"""Intcode interpreter."""
 
 from enum import IntEnum
-import sys
 
 
 class Op(IntEnum):
@@ -32,19 +31,19 @@ class Intcode(object):
         self.ctx_op = None
         self.ctx_modes = None
         self.halt = False
-        self.inputs = None
         self.debug = debug
+        self._inputs_list = None
 
     @staticmethod
     def parse_input(text):
         return [int(i) for i in text.rstrip().split(",")]
-    
+
     def log(self, message, *args):
         if self.debug:
             print("debug:", message, *args)
-    
+
     def run(self, inputs=None):
-        self.inputs = inputs or []
+        self._inputs_list = inputs or []
         handlers = self.get_handlers()
         while not self.halt:
             self.read_code()
@@ -67,7 +66,7 @@ class Intcode(object):
     def mem_get(self, pos):
         self._check_memory_limits(pos)
         return self._memory[pos]
-    
+
     def mem_set(self, pos, value):
         self._check_memory_limits(pos)
         self._memory[pos] = value
@@ -99,7 +98,7 @@ class Intcode(object):
         elif mode == PMode.REL:
             address = self.rel_base + self.mem_get(self.ip + index)
             return address if pointer else self.mem_get(address)
-    
+
     def write_at_param(self, param_offset, value):
         self.mem_set(self.param(param_offset, pointer=True), value)
 
@@ -147,7 +146,7 @@ class Intcode(object):
         self.halt = True
 
     def input_data(self):
-        return self.inputs.pop(0)
-    
+        return self._inputs_list.pop(0)
+
     def output_data(self, data):
         print(">", data)
