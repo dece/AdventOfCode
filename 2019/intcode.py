@@ -162,3 +162,25 @@ class Intcode(object):
 
     def output_data(self, data):
         print(">", data)
+
+
+class AIC(Intcode):
+    """ASCII-enabled Intcode interpreter."""
+    LN = ord("\n")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.input_text = ""
+
+    def input_data(self):
+        data, self.input_text = self.input_text[0], self.input_text[1:]
+        return ord(data)
+
+    def output_data(self, data):
+        if data > 256:
+            self.handle_int_output(data)
+        else:
+            print(chr(data), end="")
+
+    def handle_int_output(self, i):
+        print(f"Int output: {i}.")
