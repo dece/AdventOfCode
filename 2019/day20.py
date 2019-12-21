@@ -4,90 +4,25 @@ from string import ascii_uppercase
 from grid import Grid
 
 
-EX1 = [
-    "         A           ",
-    "         A           ",
-    "  #######.#########  ",
-    "  #######.........#  ",
-    "  #######.#######.#  ",
-    "  #######.#######.#  ",
-    "  #######.#######.#  ",
-    "  #####  B    ###.#  ",
-    "BC...##  C    ###.#  ",
-    "  ##.##       ###.#  ",
-    "  ##...DE  F  ###.#  ",
-    "  #####    G  ###.#  ",
-    "  #########.#####.#  ",
-    "DE..#######...###.#  ",
-    "  #.#########.###.#  ",
-    "FG..#########.....#  ",
-    "  ###########.#####  ",
-    "             Z       ",
-    "             Z       ",
-]
-EX2 = [
-    "             Z L X W       C                 ",
-    "             Z P Q B       K                 ",
-    "  ###########.#.#.#.#######.###############  ",
-    "  #...#.......#.#.......#.#.......#.#.#...#  ",
-    "  ###.#.#.#.#.#.#.#.###.#.#.#######.#.#.###  ",
-    "  #.#...#.#.#...#.#.#...#...#...#.#.......#  ",
-    "  #.###.#######.###.###.#.###.###.#.#######  ",
-    "  #...#.......#.#...#...#.............#...#  ",
-    "  #.#########.#######.#.#######.#######.###  ",
-    "  #...#.#    F       R I       Z    #.#.#.#  ",
-    "  #.###.#    D       E C       H    #.#.#.#  ",
-    "  #.#...#                           #...#.#  ",
-    "  #.###.#                           #.###.#  ",
-    "  #.#....OA                       WB..#.#..ZH",
-    "  #.###.#                           #.#.#.#  ",
-    "CJ......#                           #.....#  ",
-    "  #######                           #######  ",
-    "  #.#....CK                         #......IC",
-    "  #.###.#                           #.###.#  ",
-    "  #.....#                           #...#.#  ",
-    "  ###.###                           #.#.#.#  ",
-    "XF....#.#                         RF..#.#.#  ",
-    "  #####.#                           #######  ",
-    "  #......CJ                       NM..#...#  ",
-    "  ###.#.#                           #.###.#  ",
-    "RE....#.#                           #......RF",
-    "  ###.###        X   X       L      #.#.#.#  ",
-    "  #.....#        F   Q       P      #.#.#.#  ",
-    "  ###.###########.###.#######.#########.###  ",
-    "  #.....#...#.....#.......#...#.....#.#...#  ",
-    "  #####.#.###.#######.#######.###.###.#.#.#  ",
-    "  #.......#.......#.#.#.#.#...#...#...#.#.#  ",
-    "  #####.###.#####.#.#.#.#.###.###.#.###.###  ",
-    "  #.......#.....#.#...#...............#...#  ",
-    "  #############.#.#.###.###################  ",
-    "               A O F   N                     ",
-    "               A A D   M   "                  ,
-]
-
-
 def main():
     with open("day20.txt") as input_file:
         lines = [l.rstrip() for l in input_file.readlines()]
-    lines = EX2
 
     # Part 1
     maze = Maze(lines)
     maze.find_portals()
-    maze.dumb_print()
     min_steps = maze.count_min_steps(maze.entry, maze.exit)
     print("Min steps:", min_steps)
 
     # Part 2
     maze = Maze(lines, recurse=True)
     maze.find_portals()
-    maze.dumb_print()
     min_steps = maze.count_min_steps(maze.entry, maze.exit)
-    print("Min steps:", min_steps)
+    print("Min steps in recursion:", min_steps)
 
 
 class Maze(Grid):
-    
+
     TILE_PATH = "."
     TILE_WALL = "#"
 
@@ -121,22 +56,23 @@ class Maze(Grid):
                     portal_pos = (x, y + 2) if ddv == Maze.TILE_PATH else (x, y - 1)
                     portals[v + dv].append(portal_pos)
                     self.portal_is_outer[portal_pos] = y == 0 or y == self.height - 2
-        for n, p in portals.items():
-            if n == "AA":
-                self.entry = p[0]
-            elif n == "ZZ":
-                self.exit = p[0]
-            else:
+        self.entry = portals["AA"][0]
+        self.exit = portals["ZZ"][0]
+        for p in portals.values():
+            if len(p) == 2:
                 self.portals[p[0]] = p[1]
                 self.portals[p[1]] = p[0]
-    
-    def dumb_print(self):
+
+    def dumb_print(self, rpos=None, level=0):
         for y, row in self.g.items():
             for x, v in row.items():
-                if (x, y) in self.portals:
-                    v = "o" if self.portal_is_outer[(x, y)] else "i"
-                if (x, y) in (self.entry, self.exit):
-                    v = "▒"
+                pos = (x, y)
+                if pos == rpos:
+                    v = "@"
+                elif pos in (self.entry, self.exit):
+                    v = "▒" if not self.recurse or level == 0 else "#"
+                elif pos in self.portals:
+                    v = "▒" if not self.recurse or level > 0 or not self.portal_is_outer[pos] else "#"
                 print(v, end="")
             print()
 
@@ -159,13 +95,13 @@ class Maze(Grid):
                 near_level = level
                 if self.recurse and is_portal and near_pos == self.portals[pos]:
                     near_level += -1 if self.portal_is_outer[pos] else 1
-                if discovered[near_level].getv(near_pos[0], near_pos[1]):
+                if near_level < 0 or discovered[near_level].getv(near_pos[0], near_pos[1]):
                     continue
                 discovered[near_level].setv(near_pos[0], near_pos[1], True)
                 parents[(near_pos, near_level)] = (pos, level)
                 q.append((near_pos, near_level))
         return None
-    
+
     def count_min_steps(self, start, end):
         parents = self.bfs(start, end)
         count = 0
@@ -173,8 +109,6 @@ class Maze(Grid):
         while pos != (start, 0):
             count += 1
             parent = parents[pos]
-            if pos[1] != parent[1]:
-                count += 1
             pos = parent
         return count
 
