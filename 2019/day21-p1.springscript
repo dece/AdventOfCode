@@ -1,6 +1,9 @@
+# In any case, jump only if 4th tile is ground as it's where we land.
 OR D J
+# If 3rd is a hole, jump.
 NOT C T
 AND T J
+# If the next tile is a hole, you must jump anyway.
 NOT A T
 OR T J
 WALK

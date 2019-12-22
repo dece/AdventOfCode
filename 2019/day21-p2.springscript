@@ -1,0 +1,16 @@
+# Jump if 1 is a hole.
+NOT A J
+# Jump if there are holes that can be directly jumped.
+NOT B T
+OR T J
+NOT C T
+OR T J
+# Don't jump if 4 is a hole.
+AND D J
+# Don't jump if 5 and 8 are holes.
+NOT E T
+NOT T T
+OR H T
+AND T J
+# Go!
+RUN

@@ -1,3 +1,5 @@
+"""Pipe springscript file to stdin. Comments (#) can be escaped with grep -v."""
+
 import sys
 
 from intcode import AIC
