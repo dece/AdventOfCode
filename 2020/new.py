@@ -3,7 +3,7 @@
 import os
 from datetime import date
 
-TEMPLATE = """
+TEMPLATE = """\
 def main():
     with open("{}", "rt") as f:
         lines = [line.rstrip() for line in f.readlines()]
