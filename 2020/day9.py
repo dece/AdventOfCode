@@ -1,9 +1,9 @@
 import itertools
+import sys
 
 
 def main():
-    with open("day9.txt", "rt") as f:
-        series = [int(line.rstrip()) for line in f.readlines()]
+    series = [int(line.rstrip()) for line in sys.stdin]
     
     # Part 1
     frame_len = 25
