@@ -3,7 +3,7 @@ from collections import defaultdict
 
 
 def main():
-    nl = list(map(lambda s: int(s), sys.stdin.read().rstrip().split(",")))
+    nl = list(map(int, sys.stdin.read().rstrip().split(",")))
 
     # Part 1
     print("Part 1:", get_nth(2020, nl))
