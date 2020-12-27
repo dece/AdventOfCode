@@ -15,3 +15,7 @@ pub fn read_lines() -> Vec<String> {
     }
     lines
 }
+
+pub fn read_chars() -> String {
+    read_lines()[0].to_owned()
+}
