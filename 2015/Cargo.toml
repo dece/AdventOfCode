@@ -1,0 +1,10 @@
+[package]
+name = "aoc2015"
+version = "0.1.0"
+authors = ["dece <shgck@pistache.land>"]
+edition = "2018"
+
+[lib]
+name = "aoc"
+
+[dependencies]
