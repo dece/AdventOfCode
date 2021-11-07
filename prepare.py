@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import os
 import shutil
@@ -25,7 +26,6 @@ def main():
     input_text = fetch(input_url)
     create_files(input_text, args.day, args.year, args.lang)
     webbrowser.open_new_tab(day_url)
-    webbrowser.open_new_tab(input_url)
 
 def fetch(input_url):
     response = requests.get(input_url, cookies={"session": SESSION_ID})
